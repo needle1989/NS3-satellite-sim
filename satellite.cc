@@ -68,21 +68,29 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer icli = ipv4.Assign (cli1);
   ipv4.SetBase ("10.1.3.0", "255.255.255.0");
   Ipv4InterfaceContainer isat = ipv4.Assign (sat1);
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
   NS_LOG_INFO ("Create Applications.");
+  
+  Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpHybla::GetTypeId()));
+  
   uint16_t port = 9;
-  OnOffHelper onoff ("ns3::UdpSocketFactory",
-                     Address (InetSocketAddress (iserv.GetAddress (0), port)));
+  OnOffHelper onoff ("ns3::TcpSocketFactory",
+                     Address (InetSocketAddress (icli.GetAddress (0), port)));
   onoff.SetConstantRate (DataRate ("2Mbps"));
   ApplicationContainer apps = onoff.Install (lefts.Get (0));
   apps.Start (Seconds (1.0));
   apps.Stop (Seconds (10.0));
   
-  PacketSinkHelper sink ("ns3::UdpSocketFactory",
+  PacketSinkHelper sink ("ns3::TcpSocketFactory",
                          Address (InetSocketAddress (Ipv4Address::GetAny (), port)));
-  apps = sink.Install (routers.Get (0));
+  apps = sink.Install (rights.Get (0));
   apps.Start (Seconds (1.0));
   apps.Stop (Seconds (10.0));
+
+  NS_LOG_INFO ("Create Error Model.");
+  Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> ("ErrorRate",DoubleValue(0.05),"ErrorUnit",EnumValue(RateErrorModel::ERROR_UNIT_PACKET));
+  sat1.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
   NS_LOG_INFO ("Run Simulation.");
   AnimationInterface anim ("sat.xml");
