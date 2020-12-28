@@ -7,9 +7,13 @@
  #include "ns3/applications-module.h"
  #include "ns3/point-to-point-layout-module.h"
  #include "ns3/mobility-module.h"
+ #include "ns3/flow-monitor-helper.h"
+
  
  using namespace ns3;
- 
+
+
+//application class
  class MyApp : public Application
 {
 public:
@@ -123,6 +127,10 @@ MyApp::ScheduleTx (void)
 }
 
 
+
+
+//NetHelper
+
 void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixix,int num,int receiver,int sender,std::string rate,int cwnd)
 {
    Address sinkAddress (InetSocketAddress (ixix.GetAddress (num), sinkPort));
@@ -138,9 +146,167 @@ void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixi
    app->SetStopTime (Seconds (20.));
 }
 
- 
+//Tracer
+static bool firstCwnd = true;
+static bool firstSshThr = true;
+static bool firstRtt = true;
+static bool firstRto = true;
+static Ptr<OutputStreamWrapper> cWndStream;
+static Ptr<OutputStreamWrapper> ssThreshStream;
+static Ptr<OutputStreamWrapper> rttStream;
+static Ptr<OutputStreamWrapper> rtoStream;
+static Ptr<OutputStreamWrapper> nextTxStream;
+static Ptr<OutputStreamWrapper> nextRxStream;
+static Ptr<OutputStreamWrapper> inFlightStream;
+static uint32_t cWndValue;
+static uint32_t ssThreshValue;
+
+
+static void
+CwndTracer (uint32_t oldval, uint32_t newval)
+{
+  if (firstCwnd)
+    {
+      *cWndStream->GetStream () << "0.0 " << oldval << std::endl;
+      firstCwnd = false;
+    }
+  *cWndStream->GetStream () << Simulator::Now ().GetSeconds () << " " << newval << std::endl;
+  cWndValue = newval;
+
+  if (!firstSshThr)
+    {
+      *ssThreshStream->GetStream () << Simulator::Now ().GetSeconds () << " " << ssThreshValue << std::endl;
+    }
+}
+
+static void
+SsThreshTracer (uint32_t oldval, uint32_t newval)
+{
+  if (firstSshThr)
+    {
+      *ssThreshStream->GetStream () << "0.0 " << oldval << std::endl;
+      firstSshThr = false;
+    }
+  *ssThreshStream->GetStream () << Simulator::Now ().GetSeconds () << " " << newval << std::endl;
+  ssThreshValue = newval;
+
+  if (!firstCwnd)
+    {
+      *cWndStream->GetStream () << Simulator::Now ().GetSeconds () << " " << cWndValue << std::endl;
+    }
+}
+
+static void
+RttTracer (Time oldval, Time newval)
+{
+  if (firstRtt)
+    {
+      *rttStream->GetStream () << "0.0 " << oldval.GetSeconds () << std::endl;
+      firstRtt = false;
+    }
+  *rttStream->GetStream () << Simulator::Now ().GetSeconds () << " " << newval.GetSeconds () << std::endl;
+}
+
+static void
+RtoTracer (Time oldval, Time newval)
+{
+  if (firstRto)
+    {
+      *rtoStream->GetStream () << "0.0 " << oldval.GetSeconds () << std::endl;
+      firstRto = false;
+    }
+  *rtoStream->GetStream () << Simulator::Now ().GetSeconds () << " " << newval.GetSeconds () << std::endl;
+}
+
+static void
+NextTxTracer (SequenceNumber32 old, SequenceNumber32 nextTx)
+{
+  NS_UNUSED (old);
+  *nextTxStream->GetStream () << Simulator::Now ().GetSeconds () << " " << nextTx << std::endl;
+}
+
+static void
+InFlightTracer (uint32_t old, uint32_t inFlight)
+{
+  NS_UNUSED (old);
+  *inFlightStream->GetStream () << Simulator::Now ().GetSeconds () << " " << inFlight << std::endl;
+}
+
+static void
+NextRxTracer (SequenceNumber32 old, SequenceNumber32 nextRx)
+{
+  NS_UNUSED (old);
+  *nextRxStream->GetStream () << Simulator::Now ().GetSeconds () << " " << nextRx << std::endl;
+}
+
+static void
+TraceCwnd (std::string cwnd_tr_file_name)
+{
+  AsciiTraceHelper ascii;
+  cWndStream = ascii.CreateFileStream (cwnd_tr_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
+}
+
+static void
+TraceSsThresh (std::string ssthresh_tr_file_name)
+{
+  AsciiTraceHelper ascii;
+  ssThreshStream = ascii.CreateFileStream (ssthresh_tr_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/SlowStartThreshold", MakeCallback (&SsThreshTracer));
+}
+
+static void
+TraceRtt (std::string rtt_tr_file_name)
+{
+  AsciiTraceHelper ascii;
+  rttStream = ascii.CreateFileStream (rtt_tr_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeCallback (&RttTracer));
+}
+
+static void
+TraceRto (std::string rto_tr_file_name)
+{
+  AsciiTraceHelper ascii;
+  rtoStream = ascii.CreateFileStream (rto_tr_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/RTO", MakeCallback (&RtoTracer));
+}
+
+static void
+TraceNextTx (std::string &next_tx_seq_file_name)
+{
+  AsciiTraceHelper ascii;
+  nextTxStream = ascii.CreateFileStream (next_tx_seq_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/NextTxSequence", MakeCallback (&NextTxTracer));
+}
+
+static void
+TraceInFlight (std::string &in_flight_file_name)
+{
+  AsciiTraceHelper ascii;
+  inFlightStream = ascii.CreateFileStream (in_flight_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/BytesInFlight", MakeCallback (&InFlightTracer));
+}
+
+
+static void
+TraceNextRx (std::string &next_rx_seq_file_name)
+{
+  AsciiTraceHelper ascii;
+  nextRxStream = ascii.CreateFileStream (next_rx_seq_file_name.c_str ());
+  Config::ConnectWithoutContext ("/NodeList/2/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence", MakeCallback (&NextRxTracer));
+}
+
+
+
+
+
+
+
+//main
  int main (int argc, char *argv[])
  {
+ 
+   //a dumbbell-like high-latency hybrid network environment 
    NodeContainer nodes;
    nodes.Create (11);
    NodeContainer h0r0 = NodeContainer (nodes.Get (0), nodes.Get (9)); 
@@ -174,10 +340,8 @@ void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixi
    NetDeviceContainer dh7r1 = p2pdelay.Install (h7r1);
    NetDeviceContainer dh7h8 = p2pdelay.Install (h7h8);
    NetDeviceContainer dr0r1 = p2pbottle.Install (r0r1);
-   //Ipv4AddressHelper routerIP = Ipv4AddressHelper("15.4.0.0", "255.255.255.0");	//(network IP, mask)
-   //Ipv4AddressHelper leftIP = Ipv4AddressHelper("15.1.0.0", "255.255.255.0");
-   //Ipv4AddressHelper rightIP = Ipv4AddressHelper("15.2.0.0", "255.255.255.0");
-   //Ipv4AddressHelper stalliteIP = Ipv4AddressHelper("15.3.0.0", "255.255.255.0");
+   
+   //app
    Ipv4AddressHelper IPh0r0 = Ipv4AddressHelper("15.0.0.0", "255.255.255.0");
    Ipv4AddressHelper IPh1r0 = Ipv4AddressHelper("15.1.0.0", "255.255.255.0");
    Ipv4AddressHelper IPh2r0 = Ipv4AddressHelper("15.2.0.0", "255.255.255.0");
@@ -201,58 +365,27 @@ void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixi
    Ipv4InterfaceContainer ir0r1 = IPr0r1.Assign (dr0r1);
    
    Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-   /*
-    OnOffHelper onoff ("ns3::TcpSocketFactory",
-                     Address (InetSocketAddress (ih7h8.GetAddress (1), 8080)));
-  onoff.SetConstantRate (DataRate ("1Mbps"));
-  ApplicationContainer apps = onoff.Install (nodes.Get (0));
-  apps.Start (Seconds (1.0));
-  apps.Stop (Seconds (10.0));
-  
-  PacketSinkHelper sink ("ns3::TcpSocketFactory",
-                         Address (InetSocketAddress (Ipv4Address::GetAny (), 8080)));
-  apps = sink.Install (nodes.Get (8));
-  apps.Start (Seconds (1.0));
-  apps.Stop (Seconds (10.0));
-   */
-   
-   /*uint16_t sinkPortRouter = 8080;
-   Address sinkAddressRouter (InetSocketAddress (ir0r1.GetAddress (1), sinkPortRouter));
-   PacketSinkHelper packetSinkHelperRouter ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPortRouter));
-   ApplicationContainer sinkAppsRouter = packetSinkHelperRouter.Install (nodes.Get (10));
-   sinkAppsRouter.Start (Seconds (0.));
-   sinkAppsRouter.Stop (Seconds (20.));
-   Ptr<Socket> ns3TcpSocketRouter = Socket::CreateSocket (nodes.Get (9), TcpSocketFactory::GetTypeId ());
-   Ptr<MyApp> appRouter = CreateObject<MyApp> ();
-   appRouter->Setup (ns3TcpSocketRouter, sinkAddressRouter, 1400, 1000, DataRate ("1Mbps"));
-   nodes.Get (9)->AddApplication (appRouter);
-   appRouter->SetStartTime (Seconds (1.));
-   appRouter->SetStopTime (Seconds (20.));*/
-    Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpHybla::GetTypeId()));
+
+   Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpHybla::GetTypeId()));
     
    NetHelper (8080,nodes,ih7h8,1,8,0,"1Mbps",1000);   
    NetHelper (8081,nodes,ih6r1,0,6,1,"1Mbps",1000);  
    NetHelper (8082,nodes,ih5r1,0,5,2,"1Mbps",1000);  
    NetHelper (8083,nodes,ih4r1,0,4,3,"1Mbps",1000);  
-   //NetHelper (8082,nodes,ih1r0,9,1,"1Mbps",1000);
-   //NetHelper (8083,nodes,ih2r0,9,2,"1Mbps",1000);
-   //NetHelper (8084,nodes,ih3r0,9,3,"1Mbps",1000);
-   //NetHelper (8085,nodes,ih4r1,10,4,"1Mbps",1000);
-   //NetHelper (8086,nodes,ih5r1,10,5,"1Mbps",1000);      
-   //NetHelper (8087,nodes,ih6r1,10,6,"1Mbps",1000);     
-   //NetHelper (8088,nodes,ih7r1,10,7,"1Mbps",1000);   
-   //NetHelper (8089,nodes,ih7h8,8,7,"1Mbps",1000);  
-      
+   
+   
+   
+   //animation
    MobilityHelper mobility;   
    mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
-                       "MinX", DoubleValue (0.0),
+   				 "MinX", DoubleValue (0.0),
                                  "MinY", DoubleValue (0.0),
                                  "DeltaX", DoubleValue (5.0),
                                  "DeltaY", DoubleValue (10.0),
                                  "GridWidth", UintegerValue (3),
-                                "LayoutType" ,StringValue ("RowFirst"));
-      mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-      mobility.Install (nodes);
+                                 "LayoutType" ,StringValue ("RowFirst"));
+   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+   mobility.Install (nodes);
    AnimationInterface anim ("hybla.xml");
    anim.SetConstantPosition(nodes.Get(0),15,14);
    anim.SetConstantPosition(nodes.Get(1),15,24);
@@ -266,8 +399,51 @@ void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixi
    anim.SetConstantPosition(nodes.Get(9),34,34);
    anim.SetConstantPosition(nodes.Get(10),60,34);
 
-  
-   Simulator::Run();
+
+   bool tracing=true;  //tracing
+   bool pcap = true;
+   bool flow_monitor=true;
+   std::string prefix_file_name = "TcpVariantsComparison";
+     if (tracing)
+    {
+      std::ofstream ascii;
+      Ptr<OutputStreamWrapper> ascii_wrap;
+      ascii.open ((prefix_file_name + "-ascii").c_str ());
+      ascii_wrap = new OutputStreamWrapper ((prefix_file_name + "-ascii").c_str (),
+                                            std::ios::out);
+      internet.EnableAsciiIpv4All (ascii_wrap);
+
+      Simulator::Schedule (Seconds (0.00001), &TraceCwnd, prefix_file_name + "-cwnd.data");
+      Simulator::Schedule (Seconds (0.00001), &TraceSsThresh, prefix_file_name + "-ssth.data");
+      Simulator::Schedule (Seconds (0.00001), &TraceRtt, prefix_file_name + "-rtt.data");
+      Simulator::Schedule (Seconds (0.00001), &TraceRto, prefix_file_name + "-rto.data");
+      Simulator::Schedule (Seconds (0.00001), &TraceNextTx, prefix_file_name + "-next-tx.data");
+      Simulator::Schedule (Seconds (0.00001), &TraceInFlight, prefix_file_name + "-inflight.data");
+      Simulator::Schedule (Seconds (0.1), &TraceNextRx, prefix_file_name + "-next-rx.data");
+    }
+
+  if (pcap)
+    {
+      p2p.EnablePcapAll (prefix_file_name, true);
+      p2pbottle.EnablePcapAll (prefix_file_name, true);
+      p2pdelay.EnablePcapAll (prefix_file_name, true);
+    }
+
+  // Flow monitor
+  FlowMonitorHelper flowHelper;
+  if (flow_monitor)
+    {
+      flowHelper.InstallAll ();
+    }
+
+  Simulator::Stop (Seconds (1));
+  Simulator::Run ();
+
+  if (flow_monitor)
+    {
+      flowHelper.SerializeToXmlFile (prefix_file_name + ".flowmonitor", true, true);
+    }
+
    Simulator::Destroy ();
    return 0;
 }
