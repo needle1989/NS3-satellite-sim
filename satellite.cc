@@ -33,9 +33,17 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("satellite simulation");
 
+static void
+RxDrop (Ptr<PcapFileWrapper> file, Ptr<const Packet> p)
+{
+  NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
+  file->Write (Simulator::Now (), p);
+}
+
 int 
 main (int argc, char *argv[])
 {
+  //Create nodes
   NS_LOG_INFO ("Create nodes.");
   NodeContainer lefts,rights,routers,nodes;
   lefts.Create(1);
@@ -47,6 +55,7 @@ main (int argc, char *argv[])
   NodeContainer cli = NodeContainer(rights,routers.Get(1));
   NodeContainer sat = NodeContainer(routers.Get(0),routers.Get(1));
 
+  //Create channels
   NS_LOG_INFO ("Create channels.");
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute("DataRate",StringValue("10Mbps"));
@@ -55,11 +64,12 @@ main (int argc, char *argv[])
   NetDeviceContainer cli1 = p2p.Install(cli);
   NetDeviceContainer sat1 = p2p.Install(sat);
   
-  
+  //Create stacks
   NS_LOG_INFO ("Create stacks.");
   InternetStackHelper internet;
   internet.Install(nodes);
   
+  //Assign IP Addresses
   NS_LOG_INFO ("Assign IP Addresses.");
   Ipv4AddressHelper ipv4;
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
@@ -70,11 +80,14 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer isat = ipv4.Assign (sat1);
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
+  //Create applications
   NS_LOG_INFO ("Create Applications.");
   
   Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpHybla::GetTypeId()));
   
   uint16_t port = 9;
+  
+  //Create OnOff app
   OnOffHelper onoff ("ns3::TcpSocketFactory",
                      Address (InetSocketAddress (icli.GetAddress (0), port)));
   onoff.SetConstantRate (DataRate ("2Mbps"));
@@ -82,16 +95,24 @@ main (int argc, char *argv[])
   apps.Start (Seconds (1.0));
   apps.Stop (Seconds (10.0));
   
+  //Create sink app
   PacketSinkHelper sink ("ns3::TcpSocketFactory",
                          Address (InetSocketAddress (Ipv4Address::GetAny (), port)));
   apps = sink.Install (rights.Get (0));
   apps.Start (Seconds (1.0));
   apps.Stop (Seconds (10.0));
 
+  //Create error model
   NS_LOG_INFO ("Create Error Model.");
   Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> ("ErrorRate",DoubleValue(0.05),"ErrorUnit",EnumValue(RateErrorModel::ERROR_UNIT_PACKET));
   sat1.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
+  //Create pcap file
+  PcapHelper pcapHelper;
+  Ptr<PcapFileWrapper> file = pcapHelper.CreateFile ("sat.pcap", std::ios::out, PcapHelper::DLT_PPP);
+  sat1.Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDrop, file));
+
+  //Create animation
   NS_LOG_INFO ("Run Simulation.");
   AnimationInterface anim ("sat.xml");
   anim.SetConstantPosition (lefts.Get (0), 20, 40);
@@ -105,6 +126,9 @@ main (int argc, char *argv[])
      }
   anim.UpdateNodeDescription(lefts.Get(0),"SERVER");
   anim.UpdateNodeDescription(rights.Get(0),"CLIENT");
+  
+  //Run simulation
+  Simulator::Stop (Seconds (20));
   Simulator::Run ();
   
   NS_LOG_INFO ("Done.");
