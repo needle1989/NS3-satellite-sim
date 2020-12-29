@@ -1,4 +1,6 @@
  #include <iostream>
+ #include <fstream>
+#include <string>
  #include "ns3/core-module.h"
  #include "ns3/network-module.h"
  #include "ns3/internet-module.h"
@@ -8,8 +10,13 @@
  #include "ns3/point-to-point-layout-module.h"
  #include "ns3/mobility-module.h"
  #include "ns3/flow-monitor-helper.h"
+#include "ns3/tcp-header.h"
+ #include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/udp-header.h"
+#include "ns3/enum.h"
+#include "ns3/event-id.h"
 
- 
+
  using namespace ns3;
 
 
@@ -247,6 +254,7 @@ TraceCwnd (std::string cwnd_tr_file_name)
   Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
 }
 
+
 static void
 TraceSsThresh (std::string ssthresh_tr_file_name)
 {
@@ -293,7 +301,7 @@ TraceNextRx (std::string &next_rx_seq_file_name)
 {
   AsciiTraceHelper ascii;
   nextRxStream = ascii.CreateFileStream (next_rx_seq_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence", MakeCallback (&NextRxTracer));
+  Config::ConnectWithoutContext ("/NodeList/8/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence", MakeCallback (&NextRxTracer));
 }
 
 
@@ -341,6 +349,8 @@ TraceNextRx (std::string &next_rx_seq_file_name)
    NetDeviceContainer dh7h8 = p2pdelay.Install (h7h8);
    NetDeviceContainer dr0r1 = p2pbottle.Install (r0r1);
    
+   
+   
    //app
    Ipv4AddressHelper IPh0r0 = Ipv4AddressHelper("15.0.0.0", "255.255.255.0");
    Ipv4AddressHelper IPh1r0 = Ipv4AddressHelper("15.1.0.0", "255.255.255.0");
@@ -368,10 +378,10 @@ TraceNextRx (std::string &next_rx_seq_file_name)
 
    Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(TcpHybla::GetTypeId()));
     
-   NetHelper (8080,nodes,ih7h8,1,8,0,"1Mbps",1000);   
-   NetHelper (8081,nodes,ih6r1,0,6,1,"1Mbps",1000);  
-   NetHelper (8082,nodes,ih5r1,0,5,2,"1Mbps",1000);  
-   NetHelper (8083,nodes,ih4r1,0,4,3,"1Mbps",1000);  
+   NetHelper (8080,nodes,ih7h8,1,8,0,"1Mbps",15000);   
+   NetHelper (8081,nodes,ih6r1,0,6,1,"1Mbps",15000);  
+   NetHelper (8082,nodes,ih5r1,0,5,2,"1Mbps",15000);  
+   NetHelper (8083,nodes,ih4r1,0,4,3,"1Mbps",15000);  
    
    
    
@@ -399,8 +409,8 @@ TraceNextRx (std::string &next_rx_seq_file_name)
    anim.SetConstantPosition(nodes.Get(9),34,34);
    anim.SetConstantPosition(nodes.Get(10),60,34);
 
-
-   bool tracing=true;  //tracing
+//tracing
+   bool tracing=true;  
    bool pcap = true;
    bool flow_monitor=true;
    std::string prefix_file_name = "TcpVariantsComparison";
@@ -413,12 +423,12 @@ TraceNextRx (std::string &next_rx_seq_file_name)
                                             std::ios::out);
       internet.EnableAsciiIpv4All (ascii_wrap);
 
-      Simulator::Schedule (Seconds (0.0001), &TraceCwnd, prefix_file_name + "-cwnd.data");
-      Simulator::Schedule (Seconds (0.0001), &TraceSsThresh, prefix_file_name + "-ssth.data");
-      Simulator::Schedule (Seconds (0.0001), &TraceRtt, prefix_file_name + "-rtt.data");
-      Simulator::Schedule (Seconds (0.0001), &TraceRto, prefix_file_name + "-rto.data");
-      Simulator::Schedule (Seconds (0.0001), &TraceNextTx, prefix_file_name + "-next-tx.data");
-      Simulator::Schedule (Seconds (0.0001), &TraceInFlight, prefix_file_name + "-inflight.data");
+      Simulator::Schedule (Seconds (0.1), &TraceCwnd, prefix_file_name + "-cwnd.data");
+      Simulator::Schedule (Seconds (0.1), &TraceSsThresh, prefix_file_name + "-ssth.data");
+      Simulator::Schedule (Seconds (0.1), &TraceRtt, prefix_file_name + "-rtt.data");
+      Simulator::Schedule (Seconds (0.1), &TraceRto, prefix_file_name + "-rto.data");
+      Simulator::Schedule (Seconds (0.1), &TraceNextTx, prefix_file_name + "-next-tx.data");
+      Simulator::Schedule (Seconds (0.1), &TraceInFlight, prefix_file_name + "-inflight.data");
       Simulator::Schedule (Seconds (0.1), &TraceNextRx, prefix_file_name + "-next-rx.data");
     }
 
