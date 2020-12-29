@@ -137,13 +137,13 @@ void NetHelper (uint16_t sinkPort,NodeContainer nodes,Ipv4InterfaceContainer ixi
    PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
    ApplicationContainer sinkApps= packetSinkHelper.Install (nodes.Get (receiver));
    sinkApps.Start (Seconds (0.));
-   sinkApps.Stop (Seconds (20.));
+   sinkApps.Stop (Seconds (500.));
    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (nodes.Get (sender), TcpSocketFactory::GetTypeId ());
    Ptr<MyApp> app = CreateObject<MyApp> ();
-   app->Setup (ns3TcpSocket, sinkAddress, 1400, cwnd, DataRate (rate));
+   app->Setup (ns3TcpSocket, sinkAddress, 130000, cwnd, DataRate (rate));
    nodes.Get (sender)->AddApplication (app);
    app->SetStartTime (Seconds (1.));
-   app->SetStopTime (Seconds (20.));
+   app->SetStopTime (Seconds (500.));
 }
 
 //Tracer
@@ -244,7 +244,7 @@ TraceCwnd (std::string cwnd_tr_file_name)
 {
   AsciiTraceHelper ascii;
   cWndStream = ascii.CreateFileStream (cwnd_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
 }
 
 static void
@@ -252,7 +252,7 @@ TraceSsThresh (std::string ssthresh_tr_file_name)
 {
   AsciiTraceHelper ascii;
   ssThreshStream = ascii.CreateFileStream (ssthresh_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/SlowStartThreshold", MakeCallback (&SsThreshTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/SlowStartThreshold", MakeCallback (&SsThreshTracer));
 }
 
 static void
@@ -260,7 +260,7 @@ TraceRtt (std::string rtt_tr_file_name)
 {
   AsciiTraceHelper ascii;
   rttStream = ascii.CreateFileStream (rtt_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeCallback (&RttTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeCallback (&RttTracer));
 }
 
 static void
@@ -268,7 +268,7 @@ TraceRto (std::string rto_tr_file_name)
 {
   AsciiTraceHelper ascii;
   rtoStream = ascii.CreateFileStream (rto_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/RTO", MakeCallback (&RtoTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/RTO", MakeCallback (&RtoTracer));
 }
 
 static void
@@ -276,7 +276,7 @@ TraceNextTx (std::string &next_tx_seq_file_name)
 {
   AsciiTraceHelper ascii;
   nextTxStream = ascii.CreateFileStream (next_tx_seq_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/NextTxSequence", MakeCallback (&NextTxTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/NextTxSequence", MakeCallback (&NextTxTracer));
 }
 
 static void
@@ -284,7 +284,7 @@ TraceInFlight (std::string &in_flight_file_name)
 {
   AsciiTraceHelper ascii;
   inFlightStream = ascii.CreateFileStream (in_flight_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/BytesInFlight", MakeCallback (&InFlightTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/BytesInFlight", MakeCallback (&InFlightTracer));
 }
 
 
@@ -293,7 +293,7 @@ TraceNextRx (std::string &next_rx_seq_file_name)
 {
   AsciiTraceHelper ascii;
   nextRxStream = ascii.CreateFileStream (next_rx_seq_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/2/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence", MakeCallback (&NextRxTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence", MakeCallback (&NextRxTracer));
 }
 
 
@@ -413,12 +413,12 @@ TraceNextRx (std::string &next_rx_seq_file_name)
                                             std::ios::out);
       internet.EnableAsciiIpv4All (ascii_wrap);
 
-      Simulator::Schedule (Seconds (0.00001), &TraceCwnd, prefix_file_name + "-cwnd.data");
-      Simulator::Schedule (Seconds (0.00001), &TraceSsThresh, prefix_file_name + "-ssth.data");
-      Simulator::Schedule (Seconds (0.00001), &TraceRtt, prefix_file_name + "-rtt.data");
-      Simulator::Schedule (Seconds (0.00001), &TraceRto, prefix_file_name + "-rto.data");
-      Simulator::Schedule (Seconds (0.00001), &TraceNextTx, prefix_file_name + "-next-tx.data");
-      Simulator::Schedule (Seconds (0.00001), &TraceInFlight, prefix_file_name + "-inflight.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceCwnd, prefix_file_name + "-cwnd.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceSsThresh, prefix_file_name + "-ssth.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceRtt, prefix_file_name + "-rtt.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceRto, prefix_file_name + "-rto.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceNextTx, prefix_file_name + "-next-tx.data");
+      Simulator::Schedule (Seconds (0.0001), &TraceInFlight, prefix_file_name + "-inflight.data");
       Simulator::Schedule (Seconds (0.1), &TraceNextRx, prefix_file_name + "-next-rx.data");
     }
 
@@ -436,7 +436,7 @@ TraceNextRx (std::string &next_rx_seq_file_name)
       flowHelper.InstallAll ();
     }
 
-  Simulator::Stop (Seconds (1));
+  Simulator::Stop (Seconds (500));
   Simulator::Run ();
 
   if (flow_monitor)
