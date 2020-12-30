@@ -144,7 +144,7 @@ TraceCwnd (std::string cwnd_tr_file_name)
 {
   AsciiTraceHelper ascii;
   cWndStream = ascii.CreateFileStream (cwnd_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow", MakeCallback (&CwndTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/CongestionWindow", MakeCallback (&CwndTracer));
 }
 
 
@@ -153,7 +153,7 @@ TraceSsThresh (std::string ssthresh_tr_file_name)
 {
   AsciiTraceHelper ascii;
   ssThreshStream = ascii.CreateFileStream (ssthresh_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/SlowStartThreshold", MakeCallback (&SsThreshTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/SlowStartThreshold", MakeCallback (&SsThreshTracer));
 }
 
 static void
@@ -161,7 +161,7 @@ TraceRtt (std::string rtt_tr_file_name)
 {
   AsciiTraceHelper ascii;
   rttStream = ascii.CreateFileStream (rtt_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeCallback (&RttTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/RTT", MakeCallback (&RttTracer));
 }
 
 static void
@@ -169,7 +169,7 @@ TraceRto (std::string rto_tr_file_name)
 {
   AsciiTraceHelper ascii;
   rtoStream = ascii.CreateFileStream (rto_tr_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/RTO", MakeCallback (&RtoTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/RTO", MakeCallback (&RtoTracer));
 }
 
 static void
@@ -177,7 +177,7 @@ TraceNextTx (std::string &next_tx_seq_file_name)
 {
   AsciiTraceHelper ascii;
   nextTxStream = ascii.CreateFileStream (next_tx_seq_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/NextTxSequence", MakeCallback (&NextTxTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/NextTxSequence", MakeCallback (&NextTxTracer));
 }
 
 static void
@@ -185,7 +185,7 @@ TraceInFlight (std::string &in_flight_file_name)
 {
   AsciiTraceHelper ascii;
   inFlightStream = ascii.CreateFileStream (in_flight_file_name.c_str ());
-  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/0/BytesInFlight", MakeCallback (&InFlightTracer));
+  Config::ConnectWithoutContext ("/NodeList/0/$ns3::TcpL4Protocol/SocketList/1/BytesInFlight", MakeCallback (&InFlightTracer));
 }
 
 
@@ -308,8 +308,8 @@ TraceNextRx (std::string &next_rx_seq_file_name)
 
 //tracing
    bool tracing=true;  
-   bool pcap = true;
-   bool flow_monitor=true;
+   bool pcap = false;
+   bool flow_monitor=false;
    std::string prefix_file_name = "TcpHybla";
      if (tracing)
     {
