@@ -297,13 +297,13 @@ TraceNextRx (std::string &next_rx_seq_file_name)
    anim.SetConstantPosition(nodes.Get(1),15,24);
    anim.SetConstantPosition(nodes.Get(2),15,34);
    anim.SetConstantPosition(nodes.Get(3),15,44);
-   anim.SetConstantPosition(nodes.Get(4),70,14);
-   anim.SetConstantPosition(nodes.Get(5),70,24);
-   anim.SetConstantPosition(nodes.Get(6),70,44);
-   anim.SetConstantPosition(nodes.Get(7),70,54);
-   anim.SetConstantPosition(nodes.Get(8),72,60);
+   anim.SetConstantPosition(nodes.Get(4),60,14);
+   anim.SetConstantPosition(nodes.Get(5),60,24);
+   anim.SetConstantPosition(nodes.Get(6),60,44);
+   anim.SetConstantPosition(nodes.Get(7),60,54);
+   anim.SetConstantPosition(nodes.Get(8),65,60);
    anim.SetConstantPosition(nodes.Get(9),34,34);
-   anim.SetConstantPosition(nodes.Get(10),60,34);
+   anim.SetConstantPosition(nodes.Get(10),50,34);
 
 
 //tracing
